@@ -1,0 +1,143 @@
+name: Artifact Workflow Dispatch Demo
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: "Message for the dragon"
+        required: true
+        default: "Run for cover, I am a DRAGON....RAWR"
+        type: string
+
+      environment:
+        description: "Environment to simulate"
+        required: true
+        default: "main"
+        type: choice
+        options:
+          - dev
+          - qa
+          - production
+
+jobs:
+
+  build:
+    name: Build Artifact
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Show Workflow Information
+        run: |
+          echo "Triggered by: ${{ github.actor }}"
+          echo "Branch: ${{ github.ref }}"
+          echo "Environment: ${{ inputs.environment }}"
+          echo "Message: ${{ inputs.message }}"
+
+      - name: Install Cowsay
+        run: |
+          sudo apt-get update
+          sudo apt-get install cowsay -y
+
+      - name: Generate Dragon File
+        run: |
+          /usr/games/cowsay -f dragon "${{ inputs.message }}" > dragon.txt
+
+      - name: Show Generated File
+        run: |
+          echo "===== dragon.txt ====="
+          cat dragon.txt
+
+      - name: Create Build Information
+        run: |
+          echo "Environment=${{ inputs.environment }}" > build-info.txt
+          echo "TriggeredBy=${{ github.actor }}" >> build-info.txt
+          echo "Branch=${{ github.ref_name }}" >> build-info.txt
+          echo "Commit=${{ github.sha }}" >> build-info.txt
+
+      - name: Show Build Information
+        run: |
+          cat build-info.txt
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: dragon-artifact-${{ inputs.environment }}
+          path: |
+            dragon.txt
+            build-info.txt
+          retention-days: 7
+
+
+  test:
+    name: Test Artifact
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: dragon-artifact-${{ inputs.environment }}
+
+      - name: Show Downloaded Files
+        run: |
+          ls -lah
+
+      - name: Show Dragon
+        run: |
+          cat dragon.txt
+
+      - name: Show Build Information
+        run: |
+          cat build-info.txt
+
+      - name: Test Dragon File
+        run: |
+          grep -i "dragon" dragon.txt
+
+      - name: Test Build Information
+        run: |
+          grep "Environment=${{ inputs.environment }}" build-info.txt
+
+      - name: Test Result
+        run: |
+          echo "Artifact test successful"
+
+
+  deploy:
+    name: Deploy Simulation
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: dragon-artifact-${{ inputs.environment }}
+
+      - name: Show Artifact
+        run: |
+          echo "===== Artifact Received ====="
+          cat dragon.txt
+
+          echo ""
+          echo "===== Build Information ====="
+          cat build-info.txt
+
+      - name: Deploy Dev
+        if: ${{ inputs.environment == 'dev' }}
+        run: |
+          echo "Deploying to DEV..."
+          echo "DEV deployment completed"
+
+      - name: Deploy QA
+        if: ${{ inputs.environment == 'qa' }}
+        run: |
+          echo "Deploying to QA..."
+          echo "QA deployment completed"
+
+      - name: Deploy Production
+        if: ${{ inputs.environment == 'production' }}
+        run: |
+          echo "Deploying to PRODUCTION..."
+          echo "PRODUCTION deployment completed"
