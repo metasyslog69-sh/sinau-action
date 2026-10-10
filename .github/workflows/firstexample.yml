@@ -1,30 +1,63 @@
 name: Generate ASCII Artwork
+
 on:
   push:
+  workflow_dispatch:
 
 jobs:
   build_job_1:
+    name: Build
     runs-on: ubuntu-latest
+
     steps:
       - name: Install Cowsay Program
-        run: sudo apt-get install cowsay -y
-      - name: Execute Cowsay CMD
-        run: cowsay -f dragon "Run for cover, I am a DRAGON....RAWR" >> dragon.txt
-      - name: Sleep for 30 seconds
-        run: sleep 30
+        run: sudo apt-get update && sudo apt-get install cowsay -y
+
+      - name: Execute Cowsay
+        run: |
+          /usr/games/cowsay -f dragon "Run for cover, I am a DRAGON....RAWR" > dragon.txt
+
+      - name: Display Generated File
+        run: cat dragon.txt
+
+      - name: Upload Dragon Text File
+        uses: actions/upload-artifact@v4
+        with:
+          name: dragon-text-file
+          path: dragon.txt
+
 
   test_job_2:
+    name: Test
     needs: build_job_1
     runs-on: ubuntu-latest
+
     steps:
-      - name: Sleep for 10 seconds
-        run: sleep 10
-      - name: Test File Exists
+      - name: Download Dragon Text File
+        uses: actions/download-artifact@v4
+        with:
+          name: dragon-text-file
+
+      - name: Display Downloaded File
+        run: cat dragon.txt
+
+      - name: Verify Content
         run: grep -i "dragon" dragon.txt
 
+
   deploy_job_3:
+    name: Deploy
     needs: test_job_2
     runs-on: ubuntu-latest
+
     steps:
-      - name: Read File
+      - name: Download Dragon Text File
+        uses: actions/download-artifact@v4
+        with:
+          name: dragon-text-file
+
+      - name: Display File
         run: cat dragon.txt
+
+      - name: Deploy
+        run: echo "Deploying application..."
