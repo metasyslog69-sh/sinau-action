@@ -1,0 +1,31 @@
+name: Concurrency Demo
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Build
+        run: |
+          echo "Build started"
+          sleep 5
+          echo "Build finished"
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    concurrency:
+      group: production-deployment
+      cancel-in-progress: true
+
+    steps:
+      - name: Deploy
+        run: |
+          echo "Deployment started"
+          echo "This deployment will run for 2 minutes"
+          sleep 120
+          echo "Deployment finished"
